@@ -59,9 +59,9 @@ const RootMutationType = new GraphQLObjectType({
 
 						let updatedRate = 0;
 						if (args.type === 'buy') {
-							updatedRate = dollarRate + margin;
+							updatedRate = dollarRate + (dollarRate * margin);
 						} else if (args.type === 'sell') {
-							updatedRate = dollarRate - margin;
+							updatedRate = dollarRate - (dollarRate * margin);
 						} else {
 							conversions.push({
 								id: 0,
