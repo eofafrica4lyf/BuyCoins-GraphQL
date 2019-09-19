@@ -79,7 +79,7 @@ const RootMutationType = new GraphQLObjectType({
 						 */
 						const result = {
 							id: conversions.length + 1,
-							result: updatedRate * args.exchangeRate
+							result: (updatedRate * args.exchangeRate).toFixed(2)
 						};
 
 						//Add the records of the conversion to our 'makeshift' database
