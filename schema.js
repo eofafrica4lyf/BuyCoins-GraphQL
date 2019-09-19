@@ -1,4 +1,3 @@
-
 const axios = require('axios');
 const {
 	GraphQLSchema,
@@ -6,21 +5,23 @@ const {
 	GraphQLInt,
 	GraphQLString,
 	GraphQLNonNull,
-  GraphQLList,
-  GraphQLFloat
+	GraphQLList,
+	GraphQLFloat
 } = require('graphql');
 
 const conversions = [{ id: 1, result: 340000 }];
 
+//type of output that is returned from every conversion
 const ConvertType = new GraphQLObjectType({
 	name: 'Conversion',
 	description: 'Returns a Buying or Selling Rate',
 	fields: () => ({
-		id: { type: GraphQLNonNull(GraphQLInt) },
-		result: { type: GraphQLNonNull(GraphQLFloat) }
+		id: { type: GraphQLInt },
+		result: { type: GraphQLFloat }
 	})
 });
 
+//mandatory root query; gets all conversions
 const RootQueryType = new GraphQLObjectType({
 	name: 'Query',
 	description: 'Root Query',
@@ -34,6 +35,7 @@ const RootQueryType = new GraphQLObjectType({
 	})
 });
 
+//mutation contains 'calculatePrice' to carry out a conversion
 const RootMutationType = new GraphQLObjectType({
 	name: 'Mutation',
 	description: 'Root Mutation',
@@ -48,25 +50,46 @@ const RootMutationType = new GraphQLObjectType({
 				exchangeRate: { type: GraphQLNonNull(GraphQLInt) }
 			},
 			resolve: (parent, args) => {
+				//Get the percentage
 				const margin = args.margin / 100;
-				// const dollarRate = 10000;
+				//Get bitcoin-dollar rate and make computations with supplied values
 				return axios('https://api.coindesk.com/v1/bpi/currentprice.json')
 					.then(res => {
 						const dollarRate = res.data.bpi.USD.rate_float;
 
-						const updatedRate =
-							args.type === 'buy' ? dollarRate + margin : dollarRate - margin;
-						const nairaExchangeRate = args.exchangeRate;
+						let updatedRate = 0;
+						if (args.type === 'buy') {
+							updatedRate = dollarRate + margin;
+						} else if (args.type === 'sell') {
+							updatedRate = dollarRate - margin;
+						} else {
+							conversions.push({
+								id: 0,
+								result: null
+							});
+							return {
+								id: 0,
+								result: null
+							};
+						}
+
+						/**
+						 * Final conversion result is the product of the computed rate
+						 * and the supplied exchange naira-dollar rate
+						 */
 						const result = {
 							id: conversions.length + 1,
-							result: updatedRate * nairaExchangeRate
-            };
+							result: updatedRate * args.exchangeRate
+						};
+
+						//Add the records of the conversion to our 'makeshift' database
 						conversions.push(result);
+						//Return output of conversion
 						return result;
 					})
 					.catch(error => {
-            console.log(error);
-          });
+						console.log(error);
+					});
 			}
 		}
 	})
